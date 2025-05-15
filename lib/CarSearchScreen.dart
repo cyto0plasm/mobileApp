@@ -141,6 +141,8 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
 
   String query = '';
 
+ List<String> recentlyViewed = [];
+
   @override
   Widget build(BuildContext context) {
     final filteredCars = carModels.keys
@@ -149,7 +151,7 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
       ..sort();
 
     return Scaffold(
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: const Color(0xFF4A90E2),
       body: SafeArea(
         child: Column(
           children: [
@@ -199,15 +201,28 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
                       itemCount: filteredCars.length,
                       itemBuilder: (context, index) {
                         final carName = filteredCars[index];
+                        final car = carModels[carName]!;
                         return ListTile(
                           title: Text(carName),
                           onTap: () {
+                            setState(() {
+                              if (!recentlyViewed.contains(carName)) {
+                                recentlyViewed.insert(0, carName);
+                                if (recentlyViewed.length > 10) {
+                                  recentlyViewed = recentlyViewed.sublist(0, 10);
+                                }
+                              }
+                            });
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => CarImageScreen(
-                                  carName: carName,
-                                  imageUrl: carModels[carName]!['image']!,
+                                builder: (context) => CarDetailScreen(
+                                  brand: car['brand']!,
+                                  model: car['model']!,
+                                  imageUrl: car['image']!,
+                                  price: car['price']!,
+                                  description: car['description']!,
+                                  specs: car['specs']!,
                                 ),
                               ),
                             );
@@ -215,33 +230,140 @@ class _CarSearchScreenState extends State<CarSearchScreen> {
                         );
                       },
                     ),
-                  )
+                  ),
+                  if (recentlyViewed.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Recently Viewed',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              recentlyViewed.clear();
+                            });
+                          },
+                          child: const Text('Clear All'),
+                        )
+                      ],
+                    ),
+                    SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: recentlyViewed.length,
+                        itemBuilder: (context, index) {
+                          final carName = recentlyViewed[index];
+                          final car = carModels[carName]!;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: Column(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.asset(
+                                    car['image']!,
+                                    width: 100,
+                                    height: 70,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  carName,
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ),
       ),
-     
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.directions_car),
+            label: 'Buy a Car',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Research',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.more_horiz),
+            label: 'More',
+          ),
+        ],
+      ),
     );
   }
 }
 
-class CarImageScreen extends StatelessWidget {
-  final String carName;
+class CarDetailScreen extends StatelessWidget {
+  final String brand;
+  final String model;
   final String imageUrl;
+  final String price;
+  final String description;
+  final String specs;
 
-  const CarImageScreen({required this.carName, required this.imageUrl});
+  const CarDetailScreen({
+    super.key,
+    required this.brand,
+    required this.model,
+    required this.imageUrl,
+    required this.price,
+    required this.description,
+    required this.specs,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(carName),
-      ),
-      body: Center(
-        child: Image.asset(imageUrl),
+      appBar: AppBar(title: Text('$brand $model')),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Image.asset(imageUrl, height: 200, width: double.infinity, fit: BoxFit.cover),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$brand $model', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text(price, style: const TextStyle(fontSize: 20, color: Colors.blue)),
+                  const SizedBox(height: 8),
+                  Text(description),
+                  const SizedBox(height: 16),
+                  Text(specs, style: const TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 24),
+                  ElevatedButton(onPressed: () {}, child: const Text('Contact Dealer')),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
